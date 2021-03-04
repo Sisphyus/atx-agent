@@ -187,6 +187,9 @@ type MinicapInfo struct {
 var (
 	deviceRotation        int
 	displayMaxWidthHeight = 800
+	frameRate = "10.0"
+	jpgQuality = "80"
+	graphRotation = 0
 )
 
 func updateMinicapRotation(rotation int) {
@@ -198,8 +201,26 @@ func updateMinicapRotation(rotation int) {
 	devInfo := getDeviceInfo()
 	width, height := devInfo.Display.Width, devInfo.Display.Height
 	service.UpdateArgs("minicap", "/data/local/tmp/minicap", "-S", "-P",
-		fmt.Sprintf("%dx%d@%dx%d/%d", width, height, displayMaxWidthHeight, displayMaxWidthHeight, rotation))
+		fmt.Sprintf("%dx%d@%dx%d/%d", width, height, displayMaxWidthHeight, displayMaxWidthHeight, rotation),
+		"-r", frameRate, "-Q", jpgQuality)
 	if running {
+		service.Start("minicap")
+	}
+}
+
+func updateMinicap(rotation, frameRate, jpgQuality string) {
+	r, _ := strconv.Atoi(rotation)
+	r *= 90
+	devInfo := getDeviceInfo()
+	width, height := devInfo.Display.Width, devInfo.Display.Height
+	service.UpdateArgs("minicap", "/data/local/tmp/minicap", "-S", "-P",
+		fmt.Sprintf("%dx%d@%dx%d/%d", width, height, displayMaxWidthHeight, displayMaxWidthHeight, r),
+		"-r", frameRate, "-Q", jpgQuality)
+	if !service.Running("minicap") {
+		service.Start("minicap")
+	} else {
+		service.Stop("minicap")
+		killProcessByName("minicap") // kill not controlled minicap
 		service.Start("minicap")
 	}
 }
@@ -627,7 +648,8 @@ func main() {
 	service.Add("minicap", cmdctrl.CommandInfo{
 		Environ: []string{"LD_LIBRARY_PATH=/data/local/tmp"},
 		Args: []string{"/data/local/tmp/minicap", "-S", "-P",
-			fmt.Sprintf("%dx%d@%dx%d/0", width, height, displayMaxWidthHeight, displayMaxWidthHeight)},
+			fmt.Sprintf("%dx%d@%dx%d/%d", width, height, displayMaxWidthHeight, displayMaxWidthHeight, graphRotation),
+			"-r", frameRate, "-Q", jpgQuality},
 	})
 
 	service.Add("apkagent", cmdctrl.CommandInfo{

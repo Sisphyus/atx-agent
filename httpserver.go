@@ -53,6 +53,34 @@ func (server *Server) initHTTPServer() {
 		io.WriteString(w, version)
 	})
 
+	m.HandleFunc("/v2/minicap", func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		rotation := query.Get("rotation")
+		rate := query.Get("frameRate")
+		graphQuality := query.Get("jpgQuality")
+
+		if rotation == "" {
+			rotation = strconv.Itoa(graphRotation)
+		} else {
+			r, _ := strconv.Atoi(rotation)
+			graphRotation = r*90
+		}
+
+		if rate == "" {
+			rate = frameRate
+		} else {
+			frameRate = rate
+		}
+
+		if graphQuality == "" {
+			graphQuality = jpgQuality
+		} else {
+			jpgQuality = graphQuality
+		}
+		updateMinicap(rotation, rate, graphQuality)
+		io.WriteString(w, "success")
+	})
+
 	m.HandleFunc("/remote", func(w http.ResponseWriter, r *http.Request) {
 		renderHTML(w, "remote.html")
 	})
